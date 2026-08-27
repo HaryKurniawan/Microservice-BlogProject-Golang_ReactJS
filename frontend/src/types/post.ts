@@ -4,6 +4,9 @@ export interface Post {
   content: string;
   created_at: string;
   updated_at: string;
+  author_id?: number;
+  author_name?: string;
+  author_email?: string;
 }
 
 export interface CreatePostPayload {

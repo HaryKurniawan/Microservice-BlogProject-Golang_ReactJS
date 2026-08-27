@@ -1,0 +1,118 @@
+version: "3.8"
+
+services:
+
+  # ─────────────────────────────────────────
+  # DATABASE — User Service (users_db)
+  # ─────────────────────────────────────────
+  postgres-users:
+    image: postgres:15-alpine
+    container_name: postgres-users
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: users_db
+    volumes:
+      - postgres_users_data:/var/lib/postgresql/data
+    networks:
+      - microservice-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ─────────────────────────────────────────
+  # DATABASE — Post Service (posts_db)
+  # ─────────────────────────────────────────
+  postgres-posts:
+    image: postgres:15-alpine
+    container_name: postgres-posts
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: posts_db
+    volumes:
+      - postgres_posts_data:/var/lib/postgresql/data
+    networks:
+      - microservice-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ─────────────────────────────────────────
+  # USER SERVICE
+  # ─────────────────────────────────────────
+  user-service:
+    build: ./user-service
+    container_name: user-service
+    environment:
+      DB_HOST: postgres-users
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: password
+      DB_NAME: users_db
+      PORT: 8081
+      JWT_SECRET: my-super-secret-jwt-key-GANTI-DI-PRODUCTION
+    depends_on:
+      postgres-users:
+        condition: service_healthy
+    networks:
+      - microservice-net
+    restart: on-failure
+
+  # ─────────────────────────────────────────
+  # POST SERVICE
+  # ─────────────────────────────────────────
+  post-service:
+    build: ./post-service
+    container_name: post-service
+    environment:
+      DB_HOST: postgres-posts
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: password
+      DB_NAME: posts_db
+      PORT: 8082
+    depends_on:
+      postgres-posts:
+        condition: service_healthy
+    networks:
+      - microservice-net
+    restart: on-failure
+
+  # ─────────────────────────────────────────
+  # API GATEWAY  ← Satu-satunya yang expose ke luar
+  # ─────────────────────────────────────────
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    ports:
+      - "8085:8080"  # Menggunakan port 8085 di luar karena 8080 bentrok
+    environment:
+      PORT: 8080
+      USER_SERVICE_URL: http://user-service:8081
+      POST_SERVICE_URL: http://post-service:8082
+      JWT_SECRET: my-super-secret-jwt-key-GANTI-DI-PRODUCTION
+    depends_on:
+      - user-service
+      - post-service
+    networks:
+      - microservice-net
+    restart: on-failure
+
+# ─────────────────────────────────────────
+# NETWORK — Semua service berkomunikasi di jaringan internal ini
+# ─────────────────────────────────────────
+networks:
+  microservice-net:
+    driver: bridge
+
+# ─────────────────────────────────────────
+# VOLUMES — Persistent storage untuk database
+# ─────────────────────────────────────────
+volumes:
+  postgres_users_data:
+  postgres_posts_data:

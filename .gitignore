@@ -1,4 +1,4 @@
-﻿# Root gitignore for Monorepo (Go Backend + React Frontend)
+# Root gitignore for Monorepo (Go Microservices + React Frontend)
 
 # Frontend dependencies and builds
 **/node_modules/
@@ -6,8 +6,13 @@
 **/dist-ssr/
 frontend/*.local
 
-# Backend environment variables
-backend-go/.env
+# Microservice environment variables & temp files
+**/user-service/user-service
+**/post-service/post-service
+**/api-gateway/api-gateway
+**/.env
+**/postgres_users_data/
+**/postgres_posts_data/
 
 # Editor & System files
 .vscode/
@@ -19,3 +24,4 @@ backend-go/.env
 *.sln
 *.sw?
 *.log
+
